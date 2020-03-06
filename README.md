@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://travis-ci.com/quickcougar/smart_fridge"><img src="https://api.travis-ci.com/quickcougar/smart_fridge.svg?branch=master"></a>
+</p>
+
 Smart Fridge
 ========
 
