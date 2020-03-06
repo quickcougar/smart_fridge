@@ -5,25 +5,31 @@ package com.github.quickcougar.smart_fridge;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.github.quickcougar.smart_fridge.chains.FridgeChain;
+import com.github.quickcougar.smart_fridge.handlers.LoggingHandler;
+import com.github.quickcougar.smart_fridge.modules.AdminModule;
+import com.github.quickcougar.smart_fridge.modules.ErrorModule;
+import com.github.quickcougar.smart_fridge.modules.FridgeModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ratpack.guice.Guice;
 import ratpack.hikari.HikariModule;
 import ratpack.server.BaseDir;
 import ratpack.server.RatpackServer;
-import com.github.quickcougar.smart_fridge.chains.FridgeChain;
-import com.github.quickcougar.smart_fridge.modules.ErrorModule;
-import com.github.quickcougar.smart_fridge.modules.FridgeModule;
 import st.ratpack.auth.handler.RequireAuthHandler;
 
 public class App {
 
+    static Logger log = LoggerFactory.getLogger(App.class);
+
     public static void main(String[] args) throws Exception {
         RatpackServer.start(server -> server
                 .serverConfig(c -> c
-                                .yaml("config.yml")
-                                .env()
-                                .sysProps()
-//                        .threads(4)
-                                .baseDir(BaseDir.find()).build()
+                        .yaml("config.yml")
+                        .env()
+                        .sysProps()
+                        .threads(4)
+                        .baseDir(BaseDir.find()).build()
                 )
                 .registryOf(r -> r
                         .add(new ObjectMapper().registerModule(new Jdk8Module()))
@@ -34,15 +40,18 @@ public class App {
                             config.addDataSourceProperty("URL",
                                     "jdbc:h2:mem:smart_fridge;INIT=RUNSCRIPT FROM 'classpath:/DDL.sql'");
                             config.setConnectionTimeout(2000);
+                            config.setMaximumPoolSize(50);
                         })
+                        .module(AdminModule.class)
                         .module(ErrorModule.class)
                         .module(FridgeModule.class)
                         .bindInstance(new RequireAuthHandler())
                         .bindInstance(new FridgeChain())
                 ))
                 .handlers(chain -> chain
+                                .all(LoggingHandler.class)
 //                        .all(RequireAuthHandler.class)
-                        .insert(FridgeChain.class)
+                                .insert(FridgeChain.class)
                 ));
     }
 

@@ -1,14 +1,14 @@
 package com.github.quickcougar.smart_fridge.services;
 
 import com.github.quickcougar.smart_fridge.DataProcessException;
+import com.github.quickcougar.smart_fridge.domain.entities.Fridge;
+import com.github.quickcougar.smart_fridge.domain.entities.Item;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.exec.Blocking;
 import ratpack.exec.Operation;
 import ratpack.exec.Promise;
-import com.github.quickcougar.smart_fridge.domain.entities.Fridge;
-import com.github.quickcougar.smart_fridge.domain.entities.Item;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -104,6 +104,10 @@ public class FridgeService {
             while (resultSet.next()) {
                 items.add(new Item(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3)));
             }
+            itemSelect.close();
+            if (!itemSelect.isClosed()) {
+                log.error("FAILED to close statement connection");
+            }
         } catch (SQLException e) {
             throw new DataProcessException(String.format("Failed to get fridge items: %s", e.getMessage()));
         }
@@ -120,6 +124,10 @@ public class FridgeService {
                     List<Item> items = getFridgeItems(resultSet.getInt(1));
                     fridges.add(new Fridge(resultSet.getInt(1), resultSet.getString(2), items));
                 }
+                statement.close();
+                if (!statement.isClosed()) {
+                    log.error("FAILED to close statement connection");
+                }
                 return fridges;
             }
         });
@@ -133,6 +141,10 @@ public class FridgeService {
                 statement.setInt(1, fridge.getId());
                 statement.setString(2, fridge.getName());
                 int count = statement.executeUpdate();
+                statement.close();
+                if (!statement.isClosed()) {
+                    log.error("FAILED to close statement connection");
+                }
                 if (count == 1) {
                     updateFridgeItems(fridge, isMerge);
                 } else {
@@ -179,6 +191,10 @@ public class FridgeService {
         } else {
             throw new DataProcessException("Failed to add fridge item");
         }
+        itemInsert.close();
+        if (!itemInsert.isClosed()) {
+            log.error("FAILED to close statement connection");
+        }
     }
 
     private void updateItem(Item item, Integer fridgeId) throws SQLException {
@@ -190,6 +206,10 @@ public class FridgeService {
         itemUpdate.setString(3, item.getName());
         itemUpdate.setString(4, item.getType());
         int itemCount = itemUpdate.executeUpdate();
+        itemUpdate.close();
+        if (!itemUpdate.isClosed()) {
+            log.error("FAILED to close statement connection");
+        }
         if (itemCount < 1) {
             throw new DataProcessException(String.format("Failed to update item id %s in fridge %s",
                     item.getId().toString(), fridgeId.toString()));
@@ -202,6 +222,10 @@ public class FridgeService {
                 PreparedStatement statement = connection.prepareStatement("delete from fridge where id = ?");
                 statement.setInt(1, id);
                 statement.execute();
+                statement.close();
+                if (!statement.isClosed()) {
+                    log.error("FAILED to close statement connection");
+                }
             } catch (SQLException e) {
                 throw new DataProcessException(String.format("Failed to delete fridge %s: %s", id.toString(),
                         e.getMessage()));
@@ -214,6 +238,10 @@ public class FridgeService {
             PreparedStatement statement = connection.prepareStatement("delete from item where fridge_id = ?");
             statement.setInt(1, fridgeId);
             statement.executeUpdate();
+            statement.close();
+            if (!statement.isClosed()) {
+                log.error("FAILED to close statement connection");
+            }
         } catch (SQLException e) {
             throw new DataProcessException(String.format("Failed to delete fridge %s items: %s", fridgeId.toString(),
                     e.getMessage()));
